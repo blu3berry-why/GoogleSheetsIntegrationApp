@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">GoogleSheetsIntegrationApp</string>
+
+    <string name="gcp_id">683827752364-52nasq9dko56s3s17dkpb2bom4mpjtsf.apps.googleusercontent.com</string>
+</resources>
