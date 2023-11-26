@@ -2,7 +2,6 @@ package hu.blueberry.googlesheetsintegrationapp.drive
 
 import android.content.Context
 import android.util.Log
-import androidx.core.app.ActivityCompat.startActivityForResult
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 
 import com.google.api.client.googleapis.extensions.android.gms.auth.*
@@ -12,6 +11,7 @@ import com.google.api.services.drive.Drive
 import com.google.api.services.drive.DriveScopes
 import com.google.api.services.drive.model.File
 import dagger.hilt.android.qualifiers.ApplicationContext
+import hu.blueberry.googlesheetsintegrationapp.drive.base.CloudBase
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.concurrent.thread
@@ -19,7 +19,8 @@ import kotlin.concurrent.thread
 
 @Singleton
 class DriveManager @Inject constructor(
-    @ApplicationContext val context: Context
+    @ApplicationContext val context: Context,
+    @Inject val cloudBase: CloudBase
 ) {
     companion object{
 
@@ -27,6 +28,9 @@ class DriveManager @Inject constructor(
     object MimeType {
         const val FOLDER = "application/vnd.google-apps.folder"
     }
+
+    val drive: Drive
+        get() = getDriveService()!!
 
      private fun getDriveService(): Drive? {
         GoogleSignIn.getLastSignedInAccount(context)?.let { googleAccount ->
@@ -44,14 +48,17 @@ class DriveManager @Inject constructor(
 
 
     fun createFolder(name:String, askPermission: (ex:UserRecoverableAuthIOException)->Unit){
+
         thread {
             try {
-                val service = getDriveService()!!
 
-                val folder_data = File()
-                folder_data.name = "Now Created/New Folder"
-                folder_data.mimeType = MimeType.FOLDER
-                val folder = service.files().create(folder_data).execute()
+
+                val folderData = File().apply {
+                    this.name = name
+                    this.mimeType = MimeType.FOLDER
+                }
+
+                var folder = drive.files().create(folderData).execute()
 
             }catch (ex: UserRecoverableAuthIOException){
                 Log.d("Folder", ex.message ?: "")
@@ -64,7 +71,7 @@ class DriveManager @Inject constructor(
         }
     }
 
-    fun searchFolder(){
+    fun searchFolder(name: String){
         thread {
             try {
                 val service = getDriveService()!!
@@ -78,10 +85,9 @@ class DriveManager @Inject constructor(
                     Log.d("Folder", it.id ?: "no id")
                 }
 
-                result.files
-
-
-
+                val folder = result.files.filter {
+                    it.name == name
+                }.firstOrNull()
 
 
             }catch (ex: UserRecoverableAuthIOException){
