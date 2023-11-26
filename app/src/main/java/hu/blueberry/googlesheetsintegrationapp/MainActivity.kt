@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -23,15 +24,21 @@ import com.google.api.client.googleapis.extensions.android.gms.auth.UserRecovera
 import com.google.api.services.drive.model.File
 import dagger.hilt.android.AndroidEntryPoint
 import hu.blueberry.googlesheetsintegrationapp.drive.DriveManager
+import hu.blueberry.googlesheetsintegrationapp.drive.GoogleSheetsManager
+import hu.blueberry.googlesheetsintegrationapp.drive.base.CloudBase
+import hu.blueberry.googlesheetsintegrationapp.drive.base.PermissionHandler
 import hu.blueberry.googlesheetsintegrationapp.ui.theme.GoogleSheetsIntegrationAppTheme
 import kotlin.concurrent.thread
 
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : ComponentActivity(), PermissionHandler {
     private var mGoogleSignInClient : GoogleSignInClient? = null
 
     private var signedInAccount : GoogleSignInAccount? = null
+
+    lateinit var sheets : GoogleSheetsManager
+    lateinit var driveManager: DriveManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,6 +56,11 @@ class MainActivity : ComponentActivity() {
 
         BuildConfig.CREDENTIALS
 
+
+        sheets = GoogleSheetsManager(this, context = applicationContext)
+        driveManager = DriveManager(applicationContext)
+        
+
 //        DriveManager(applicationContext).createFolder("Now Created New Folder 1"){
 //                ex ->
 //            runOnUiThread{
@@ -58,7 +70,7 @@ class MainActivity : ComponentActivity() {
 //            }
 //        }
 
-        DriveManager(applicationContext).searchFolder()
+
 
         setContent {
             GoogleSheetsIntegrationAppTheme {
@@ -68,6 +80,18 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     Greeting("Android")
+                }
+                Button(onClick = { thread {
+
+
+
+                    val folderId = driveManager.searchFolder("WorkingFolder")
+
+                    driveManager.createSpreadSheetInFolder(folderId, "NewSpreadSheet")
+
+
+                } }) {
+                   Text(text = "New SpreadSheet") 
                 }
             }
         }
@@ -107,9 +131,6 @@ class MainActivity : ComponentActivity() {
 
             // Signed in successfully, show authenticated UI.
             //updateUI(account)
-
-
-
             setContent {
                 Greeting(name = "authenticated")
             }
@@ -119,6 +140,17 @@ class MainActivity : ComponentActivity() {
             Log.w("TAG", "signInResult:failed code=" + e.statusCode)
             //updateUI(null)
         }
+    }
+
+    private fun id(id:String){
+        setContent{
+            Greeting(name = id)
+        }
+    }
+
+
+    override fun askForPermissionFromException(exception: UserRecoverableAuthIOException) {
+        startActivityForResult(exception.intent, CloudBase.SCOPE_REQUEST)
     }
 }
 

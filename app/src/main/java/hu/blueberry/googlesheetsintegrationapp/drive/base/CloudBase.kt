@@ -13,26 +13,40 @@ import kotlin.concurrent.thread
 @Singleton
 class CloudBase @Inject constructor(
     @ApplicationContext val context: Context,
-    private var permissionHandler: PermissionHandler,
-    private var scopes: List<String>
 ) {
 
+    companion object{
+        val SCOPE_REQUEST = 1234
+    }
 
-    val credential: GoogleAccountCredential?
-        get() {
-            GoogleSignIn.getLastSignedInAccount(context)?.let { googleAccount ->
-                val credential = GoogleAccountCredential.usingOAuth2(
-                    context, scopes
-                )
-                credential.selectedAccount = googleAccount.account!!
 
-                return credential
-            }
-            return null
+
+//    val credential: GoogleAccountCredential?
+//        get() {
+//            GoogleSignIn.getLastSignedInAccount(context)?.let { googleAccount ->
+//                val credential = GoogleAccountCredential.usingOAuth2(
+//                    context, scopes
+//                )
+//                credential.selectedAccount = googleAccount.account!!
+//
+//                return credential
+//            }
+//            return null
+//        }
+
+    fun getCredentials(scopes: List<String>): GoogleAccountCredential? {
+        GoogleSignIn.getLastSignedInAccount(context)?.let { googleAccount ->
+            val credential = GoogleAccountCredential.usingOAuth2(
+                context, scopes
+            )
+            credential.selectedAccount = googleAccount.account!!
+
+            return credential
         }
+        return null
+    }
 
-    fun errorHandlingRun(func: () -> Unit) {
-        thread {
+    fun errorHandlingRun(permissionHandler: PermissionHandler, func: () -> Unit) {
             try {
                 func()
             } catch (exception: UserRecoverableAuthIOException) {
@@ -42,8 +56,9 @@ class CloudBase @Inject constructor(
             } catch (ex: Exception) {
                 Log.d("Folder", ex.message ?: "")
             }
-        }
     }
+
+
 
 
 }
